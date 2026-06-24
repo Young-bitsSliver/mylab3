@@ -1,0 +1,25 @@
+# /.github/workflows/deploy.yml
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted   # 사내 우분투 22.04 Runner 사용
+    
+    steps:
+      - name: 소스 코드 체크아웃
+        uses: actions/checkout@v3
+
+      - name: Docker 이미지 빌드 & Docker Hub 푸시
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/my-web-app:latest .
+          echo ${{ secrets.DOCKERHUB_TOKEN }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/my-web-app:latest
+
+      - name: Ansible로 Kubernetes 배포
+        run: |
+          ansible-playbook -i ansible/inventory.ini ansible/deploy.yml
